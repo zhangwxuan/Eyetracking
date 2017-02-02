@@ -150,6 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="empty.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Serial.cpp" />
   </ItemGroup>

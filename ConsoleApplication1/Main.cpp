@@ -12,8 +12,7 @@
 #include <Windows.h>
 #include <cstdlib>
 #include <conio.h>
-
-
+ 
 using namespace cv;
 using namespace std;
 //initial min and max HSV filter values.

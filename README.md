@@ -28,8 +28,7 @@ And
 enter 2 for mouse control option 
 ```
 
-### Updated: 
-I am still working with second function, which is to control the mouse. 
+
 
 ### Clone project to local visual studio: 
 1. Open Visual Studio: menu -> team -> manage connections 
@@ -39,7 +38,7 @@ I am still working with second function, which is to control the mouse.
 5. Clone 
 6. Go to Solution Explorer window and run the project 
 
-### Setting need to change for this project: 
+### Setting to change after installing for this project: 
 ```
 1. Project right click - properties - general - character set - change to "not set" 
 ```
@@ -53,3 +52,6 @@ I am still working with second function, which is to control the mouse.
 4. change the opencv library location
 ```
 
+
+### Updated: 
+I am still working with second function, which is to control the mouse. 

@@ -39,4 +39,17 @@ I am still working with second function, which is to control the mouse.
 5. Clone 
 6. Go to Solution Explorer window and run the project 
 
+### Setting need to change for this project: 
+```
+1. Project right click - properties - general - character set - change to "not set" 
+```
+```
+2. x64: properties -linker - advanced - target machine - change to "x64"
+```
+```
+3. x64: menu bar - build - configuration manager - platfor, - change to "x64"
+```
+```
+4. change the opencv library location
+```
 

@@ -328,6 +328,18 @@ void screen(int x_1, int x_2, int y_1, int y_2, Mat &frame ){
 	line(frame, Point(0,y_2), Point(1280, y_2), Scalar(255), 1, 8, 0);
 }
 
+void screen2(int x_min, int y_min, int spacex_3, int spacey_2, Mat &frame){
+
+	line(frame, Point(x_min, y_min), Point(Spacex_3, y_min), Scalar(255), 1, 8, 0);
+	line(frame, Point(x_min, Spacey_1), Point(Spacex_3, Spacey_1), Scalar(255), 1, 8, 0);
+	line(frame, Point(x_min, Spacey_2), Point(Spacex_3, Spacey_2), Scalar(255), 1, 8, 0);
+
+	line(frame, Point(x_min, y_min), Point(x_min, Spacey_2), Scalar(255), 1, 8, 0);
+	line(frame, Point(Spacex_1, y_min), Point(Spacex_1, Spacey_2), Scalar(255), 1, 8, 0);
+	line(frame, Point(Spacex_2, y_min), Point(Spacex_2, Spacey_2), Scalar(255), 1, 8, 0);
+	line(frame, Point(Spacex_3, y_min), Point(Spacex_3, Spacey_2), Scalar(255), 1, 8, 0);
+}
+
 //write on X,Y coordinates after calibration  
 void PutXY(Mat &cameraFeed){
 	putText(cameraFeed, "Xmin=" + intToString(x_min), Point(1000, 540), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
@@ -371,7 +383,6 @@ char control(int x, int y){ //      need to go backk and check!!!!
 // cursor control panel : control 2: 
 char control2(int x, int y){
 
-
 	if (x_min < x && x < Spacex_1){
 		if (y_min<y && y <Spacey_1)
 		{
@@ -382,8 +393,8 @@ char control2(int x, int y){
 			return '3'; //x1 y2: left 
 		}
 	}
-	else if (x_min < x && x < Spacex_2){
-		if (y_min<y &&  (y - Spacey_1)<0)
+	else if (Spacex_1 < x && x < Spacex_2){
+		if (y_min<y &&  y < Spacey_1)
 		{
 			return '1';//x2 y1: up 
 		} 
@@ -392,8 +403,8 @@ char control2(int x, int y){
 			return '2';//x2 y2: down 
 		} 
 	}
-	else  if (x_min < x && x < Spacex_3){
-		if (y_min<y &&  (y - Spacey_1)<0)
+	else  if (Spacex_2< x && x < Spacex_3){
+		if (y_min<y &&  y < Spacey_1)
 		{
 			return '6'; //x3 y1: right click 
 		}
@@ -453,30 +464,30 @@ void instruction(int input, int x, int y, Mat &frame){
 // display selected area for control panel 2:
 void instruction2(int input,  Mat &frame){
 	double alpha = 0.3;
-	if (input == '1')    //turning left
+	if (input == '1')    // up
 	{
 		Mat roi = frame(Rect(Point(160, 0), Point(320, 150)));
 		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
 		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
 
-	else if (input == '2')      //turning right 
+	else if (input == '2')      //down
 	{
 		Mat roi = frame(Rect(Point(160, 150), Point(320, 300)));
 		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
 		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
 
-	else if (input == '3')     //back 
+	else if (input == '3')     //left 
 	{
 		Mat roi = frame(Rect(Point(0, 150), Point(160, 300)));
 		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
 		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
 
-	else if (input == '4')    //forward 
+	else if (input == '4')    //right 
 	{
-		Mat roi = frame(Rect(Point(160, 0), Point(320, 150)));
+		Mat roi = frame(Rect(Point(320, 150), Point(480, 300)));
 		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
 		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
 	}
@@ -597,7 +608,8 @@ int main(int argc, char* argv[])
 	int timex;
 	//is for counitng time display
 	char input; // arduino input 
-
+	char calibrationOption; 
+	bool Option1 = true;
 
 #pragma endregion
 
@@ -608,7 +620,7 @@ int main(int argc, char* argv[])
 	cout << "please enter the number: ..." << endl;
 	cin >> userOpt;
 
-		cout << "loading..." << endl;
+		cout << "loading..." << endl<<endl;
 #pragma region arduinoSetUp
 
 			Serial* port = new Serial("COM4"); //connect to arduino        Here to change the port number 
@@ -746,34 +758,76 @@ int main(int argc, char* argv[])
           
 
 			if (userOpt == 2){
+
+
 #pragma region   option2_Control
 
 				Mat output;
 				output = Mat::zeros(Size(480, 300), CV_8UC3);
 				ctrlBox(output);
 
-				//calibration 
-				if (cali == true && objectFound == true)
-				{
-					if (start_time){
-						start = clock();
-						start_time = false;
-					}
-
-					duration = (double)(clock() - start) / CLOCKS_PER_SEC;
-
-					if (duration < 23)
-						calibration2(x, y, output, duration);
+				//if catch the calibration or by input: 
+				if (Option1){
+					cout << "Please select calibration method " << endl;
+					cout << "1. By system measure " << endl;
+					cout << "2. By user input " << endl;
+					cout << "please enter the number: ..." << endl;
+					cin >> calibrationOption;
+					Option1 = false;
 				}
 
-				else
-					start = clock();
+				//calibration 
+				if (!startControl){
+					//option 1: control by system calibraion 
+					if (calibrationOption == '1'){
+						cout << "start calibration process";
+						if (cali == true && objectFound == true)
+						{
+							if (start_time){
+								start = clock();
+								start_time = false;
+							}
+
+							duration = (double)(clock() - start) / CLOCKS_PER_SEC;
+
+							if (duration < 23)
+								calibration2(x, y, output, duration);
+						}
+
+						else
+							start = clock();
 
 
-				//after calibration and can start to control 
-				if (cali == false){
-					PutXY(cameraFeed);
-					startControl = true;
+						//after calibration and can start to control 
+						if (cali == false){
+							PutXY(cameraFeed);
+							startControl = true;
+						}
+
+					}
+
+					//option 2: control by input numbers 
+					if (calibrationOption == '2'){
+						cout << "please enter number:";
+						cout << "x_min:";
+						cin >> x_min;
+						cout << "SpaceX_1: ";
+						cin >> Spacex_1;
+						cout << "SpaceX_2: ";
+						cin >> Spacex_2;
+						cout << "SpaceX_3: ";
+						cin >> Spacex_3;
+						cout << "y_min:";
+						cin >> y_min;
+						cout << "SpaceY_1: ";
+						cin >> Spacey_1;
+						cout << "SpaceY_2: ";
+						cin >> Spacey_2;
+						PutXY(cameraFeed);
+
+
+						startControl = true;
+					}
 				}
 
 				if (startControl){
@@ -790,6 +844,7 @@ int main(int argc, char* argv[])
 					putText(output, "Tracking:", Point(350, 20), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 2);
 
 				putText(cameraFeed, "control =" + intToString(input), Point(1000, 500), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+				screen2(x_min, y_min, Spacex_3, Spacey_2, cameraFeed);
 				imshow(windowName4, output);
 
 #pragma endregion	

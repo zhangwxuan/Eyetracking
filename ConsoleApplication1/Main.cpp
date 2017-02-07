@@ -186,7 +186,6 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 				}
 				else objectFound = false;
 
-
 			}
 			//let user know you found an object
 			if (objectFound == true){
@@ -194,7 +193,6 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 				//draw object location on screen
 				drawObject(x, y, cameraFeed);
 			}
-
 		}
 		else putText(cameraFeed, "PLEASE ADJUST FILTER", Point(0, 50), 2, 1, Scalar(0, 0, 255), 2);
 	}
@@ -349,8 +347,6 @@ void PutXY(Mat &cameraFeed){
 	putText(cameraFeed, "X3=" + intToString(Spacex_3), Point(1000, 620), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
 	putText(cameraFeed, "Y1=" + intToString(Spacey_1), Point(1000, 640), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
 	putText(cameraFeed, "Y2=" + intToString(Spacey_2), Point(1000, 660), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "dx=" + intToString(dx), Point(1000, 680), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "dy=" + intToString(dy), Point(1000, 700), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
 	putText(cameraFeed, "Controlling", Point(0, 80), 2, 1, Scalar(0, 255, 0), 2);
 }
 
@@ -389,29 +385,34 @@ char control2(int x, int y){
 			return '5';  //x1 y1: left click 
 		}
 
-		else {
+		else if (Spacey_1< y && y<Spacey_2)
+		{
 			return '3'; //x1 y2: left 
 		}
+		else return'7';
+
 	}
 	else if (Spacex_1 < x && x < Spacex_2){
 		if (y_min<y &&  y < Spacey_1)
 		{
 			return '1';//x2 y1: up 
 		} 
-		else
+		else if (Spacey_1< y && y < Spacey_2)
 		{
 			return '2';//x2 y2: down 
 		} 
+		else return'7';
 	}
 	else  if (Spacex_2< x && x < Spacex_3){
 		if (y_min<y &&  y < Spacey_1)
 		{
 			return '6'; //x3 y1: right click 
 		}
-		else
+		else if (Spacey_1< y && y < Spacey_2)
 		{
 			return '4'; //x3 y2: right 
 		}
+		else return'7';
 	}
 	else return ' 7';
 
@@ -537,38 +538,37 @@ void ctrlBox( Mat &output){
 //call cursor events: 
 void cursor(int input){
 	switch ((input)) {
-	case '1':
-		cout << "Up" << endl;//key up
+	case '1':  //key up
 		cursor_y = cursor_y - 5;
+		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '2':
-		cout << "Down" << endl;   // key down
+	case '2': // key down
 		cursor_y = cursor_y + 5;
+		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '3':
-		cout << "Left" << endl;  // key left
+	case '3':  // key left
 		cursor_x = cursor_x - 5;
+		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '4':
-		cout << "Right" << endl;  // key right
+	case '4':  // key right
 		cursor_x = cursor_x + 5;
+		SetCursorPos(cursor_x, cursor_y);
 		break;
 	case '5':
-		cout << "click" << endl;
 		mouse_event(MOUSEEVENTF_LEFTDOWN, cursor_x, cursor_y, 0, 0); // moving cursor leftdown
 		mouse_event(MOUSEEVENTF_LEFTUP, cursor_x, cursor_y, 0, 0); // moving cursor leftup //for accessing your required co-ordinate
+		break;
+
 	case '6':
-		cout << "click" << endl;
 		mouse_event(MOUSEEVENTF_RIGHTDOWN, cursor_x, cursor_y, 0, 0); // moving cursor leftdown
 		mouse_event(MOUSEEVENTF_RIGHTUP, cursor_x, cursor_y, 0, 0); // moving cursor leftup //for accessing your required co-ordinate
-
+		break; 
    
 	default:
 		cout << "null" << endl;  // not arrow
 		break;
 	}
-	SetCursorPos(cursor_x, cursor_y);
-	Sleep(50);
+	Sleep(20);
 
 }
 
@@ -771,6 +771,7 @@ int main(int argc, char* argv[])
 					cout << "Please select calibration method " << endl;
 					cout << "1. By system measure " << endl;
 					cout << "2. By user input " << endl;
+					cout << "3. By example input " << endl;
 					cout << "please enter the number: ..." << endl;
 					cin >> calibrationOption;
 					Option1 = false;
@@ -809,25 +810,23 @@ int main(int argc, char* argv[])
 					//option 2: control by input numbers 
 					if (calibrationOption == '2'){
 						cout << "please enter number:";
-						cout << "x_min:";
-						cin >> x_min;
-						cout << "SpaceX_1: ";
-						cin >> Spacex_1;
-						cout << "SpaceX_2: ";
-						cin >> Spacex_2;
-						cout << "SpaceX_3: ";
-						cin >> Spacex_3;
-						cout << "y_min:";
-						cin >> y_min;
-						cout << "SpaceY_1: ";
-						cin >> Spacey_1;
-						cout << "SpaceY_2: ";
-						cin >> Spacey_2;
+						cout << "x_min:";  	cin >> x_min;
+						cout << "SpaceX_1: ";  cin >> Spacex_1;
+						cout << "SpaceX_2: ";  cin >> Spacex_2;
+						cout << "SpaceX_3: ";  cin >> Spacex_3;
+						cout << "y_min:";      cin >> y_min;
+						cout << "SpaceY_1: ";  cin >> Spacey_1;
+						cout << "SpaceY_2: ";   cin >> Spacey_2;
 						PutXY(cameraFeed);
-
-
 						startControl = true;
 					}
+
+					if (calibrationOption == '3'){
+						x_min = 510; Spacex_1 = 625;  Spacex_2 = 740; Spacex_3 = 855;
+						y_min = 411; Spacey_1 = 516;  Spacey_2 = 622;
+						startControl = true;
+					}
+
 				}
 
 				if (startControl){
@@ -835,9 +834,14 @@ int main(int argc, char* argv[])
 					// to control the cursor movement 
 				//   	cursor(input);
 					//high light selected area 
-					cout << input; 
-					instruction2(input, output);
-				}
+					//cout << input; 
+					if (objectFound)
+					{
+						instruction2(input, output);
+						cursor(input);
+					}
+				
+					}
 				
 
 				if (objectFound)

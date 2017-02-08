@@ -57,11 +57,11 @@ enter 3 to start a simple test with existing calibraion data
 
 
 ### Updated log: 
-02/03: create github sharing and test project clone 
-02/06: mouse control basic function finished 
-02/07: change the mouse control panal bar and indicating area    
-       stop control mouse when lose tracking objects 
-02/08: cursor get postion funcstions for continuous controlling 
+02/03: create github sharing and test project clone  <br />
+02/06: mouse control basic function finished  <br />
+02/07: change the mouse control panal bar and indicating area, 
+       stop control mouse when lose tracking objects   <br />
+02/08: cursor get postion funcstions for continuous controlling  <br />
 
 ### to do list: 
 1. testing with glasses on mouse control panel 

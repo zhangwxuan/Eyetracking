@@ -1,3 +1,5 @@
+// this is update online at the sametime 
+
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -52,6 +54,8 @@ int dx, dy, x_1, x_2, y_1, y_2, Spacex_1, Spacex_2, Spacex_3, Spacey_1, Spacey_2
 int stop=0;  // to count the time to shut down system automatically 
 int userOpt; // option for operation mode 
 int cursor_x = 960, cursor_y = 540; 
+
+POINT p; 
 
 void on_trackbar(int, void*)
 {//This function gets called whenever a
@@ -537,6 +541,9 @@ void ctrlBox( Mat &output){
 
 //call cursor events: 
 void cursor(int input){
+	GetCursorPos(&p);
+	cursor_x = p.x;
+	cursor_y = p.y;
 	switch ((input)) {
 	case '1':  //key up
 		cursor_y = cursor_y - 5;
@@ -855,7 +862,6 @@ int main(int argc, char* argv[])
 			}
 
 #pragma region screen 
-
 
 			//Drawing rectangle shape: 
 			addColor(cameraFeed);

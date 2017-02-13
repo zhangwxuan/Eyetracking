@@ -21,13 +21,14 @@ using namespace std;
 //these will be changed using trackbars
 
 
-int H_MIN = 14;
+int H_MIN = 32;
 int H_MAX = 256;
-int S_MIN = 140;
+int S_MIN = 37;
 int S_MAX = 256;
-int V_MIN = 119;
+int V_MIN = 35;
 int V_MAX = 256;
-
+int DilateV = 1; 
+int ErodeV= 5;
 
 //default capture width and height
 const int FRAME_WIDTH = 1280;
@@ -85,6 +86,9 @@ void createTrackbars(){
 	sprintf_s(TrackbarName, "S_MAX", S_MAX);
 	sprintf_s(TrackbarName, "V_MIN", V_MIN);
 	sprintf_s(TrackbarName, "V_MAX", V_MAX);
+	sprintf_s(TrackbarName, "Dilate", DilateV);
+	sprintf_s(TrackbarName, "Erode", ErodeV);
+
 	//create trackbars and insert them into window
 	//3 parameters are: the address of the variable that is changing when the trackbar is moved(eg.H_LOW),
 	//the max value the trackbar can move (eg. H_HIGH),
@@ -96,7 +100,8 @@ void createTrackbars(){
 	createTrackbar("S_MAX", trackbarWindowName, &S_MAX, S_MAX, on_trackbar);
 	createTrackbar("V_MIN", trackbarWindowName, &V_MIN, V_MAX, on_trackbar);
 	createTrackbar("V_MAX", trackbarWindowName, &V_MAX, V_MAX, on_trackbar);
-
+	createTrackbar("Dilate", trackbarWindowName, &DilateV, 10, on_trackbar);
+	createTrackbar("Erode", trackbarWindowName, &ErodeV, 10, on_trackbar);
 
 }
 
@@ -139,9 +144,9 @@ void morphOps(Mat &thresh){
 	//create structuring element that will be used to "dilate" and "erode" image.
 	//the element chosen here is a 3px by 3px rectangle
 
-	Mat erodeElement = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
+	Mat erodeElement = getStructuringElement(MORPH_ELLIPSE, Size(ErodeV, ErodeV));
 	//dilate with larger element so make sure object is nicely visible                      
-	Mat dilateElement = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
+	Mat dilateElement = getStructuringElement(MORPH_ELLIPSE, Size(DilateV, DilateV));
 
 	erode(thresh, thresh, erodeElement);
 	erode(thresh, thresh, erodeElement);
@@ -513,10 +518,19 @@ void instruction2(int input,  Mat &frame){
 
 
 //add filter for reflection 
-void addColor( Mat &cameraFeed){
+void addColor1( Mat &cameraFeed){
 	Mat roi = cameraFeed(Rect(Point(0, 0), Point(1280, 720)));
 	Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
 	addWeighted(color, 0.5, roi, 0.5, 0.0, roi);
+
+}
+
+void addColor(Mat& cameraFeed){
+	Mat roi;
+	double alpha = 0.5;
+    cameraFeed.copyTo(roi);
+	rectangle(roi, cv::Rect(0, 0, 1280, 720), cv::Scalar(0, 125, 125),-1);
+	addWeighted(roi, alpha, cameraFeed, 1 - alpha, 0, cameraFeed);
 
 }
 
@@ -869,8 +883,8 @@ int main(int argc, char* argv[])
 			//show frames
 			imshow(windowName2, threshold);
 			imshow(windowName, cameraFeed);
-
 			moveWindow("threshold", 10, 70);
+
 
 			//image will not appear without this waitKey() command
 			waitKey(1);

@@ -21,14 +21,14 @@ using namespace std;
 //these will be changed using trackbars
 
 
-int H_MIN = 32;
+int H_MIN = 33;
 int H_MAX = 256;
-int S_MIN = 37;
+int S_MIN = 0;
 int S_MAX = 256;
-int V_MIN = 35;
+int V_MIN = 37;
 int V_MAX = 256;
-int DilateV = 1; 
-int ErodeV= 5;
+int DilateV = 6; 
+int ErodeV= 6;
 
 //default capture width and height
 const int FRAME_WIDTH = 1280;
@@ -38,7 +38,7 @@ const int FRAME_HEIGHT = 720;
 const int MAX_NUM_OBJECTS = 20;                             //make sure no noise to interupt
 
 //minimum and maximum object area
-const int MIN_OBJECT_AREA = 20 * 20;                        //no need
+const int MIN_OBJECT_AREA = 15 * 15;                        //no need
 const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH / 1.5; //no need
 
 //names that will appear at the top of each window
@@ -227,25 +227,25 @@ void calibration(int x, int y, Mat &cameraFeed, double duration){
 	{
 		x_max = x;
 		y_min1 = y;
-		circle(cameraFeed, Point(1260, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
+		circle(cameraFeed, Point(FRAME_WIDTH-20, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
 	else if (duration < 14)
 	{
 		x_max1 = x;
 		y_max = y;
-		circle(cameraFeed, Point(1260, 700), 20, Scalar(0, 0, 255), CV_FILLED, 8);
+		circle(cameraFeed, Point(FRAME_WIDTH-20, FRAME_HEIGHT-20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
 	else if (duration < 17)
 	{
 		x_min1 = x;
 		y_max1 = y;
-		circle(cameraFeed, Point(20, 700), 20, Scalar(0, 0, 255), CV_FILLED, 8);
+		circle(cameraFeed, Point(20, FRAME_HEIGHT - 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
 	else if (duration < 20)
 	{
 		x_o = x;
 		y_o = y;
-		circle(cameraFeed, Point(630, 350), 20, Scalar(0, 0, 255), CV_FILLED, 8);
+		circle(cameraFeed, Point(FRAME_WIDTH/2, FRAME_HEIGHT / 2), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
 	else if (duration < 23)
 	{
@@ -329,10 +329,10 @@ void calibration2(int x, int y, Mat &cameraFeed, double duration){
 //devide the screen for different area  
 void screen(int x_1, int x_2, int y_1, int y_2, Mat &frame ){
 
-	line(frame, Point(x_1, 0), Point(x_1, 720), Scalar(255), 1, 8, 0);
-	line(frame, Point(x_2, 0), Point(x_2, 720), Scalar(255), 1, 8, 0);
-	line(frame, Point(0, y_1), Point(1280, y_1), Scalar(255), 1, 8, 0);
-	line(frame, Point(0,y_2), Point(1280, y_2), Scalar(255), 1, 8, 0);
+	line(frame, Point(x_1, 0), Point(x_1, FRAME_HEIGHT), Scalar(255), 1, 8, 0);
+	line(frame, Point(x_2, 0), Point(x_2, FRAME_HEIGHT), Scalar(255), 1, 8, 0);
+	line(frame, Point(0, y_1), Point(FRAME_WIDTH, y_1), Scalar(255), 1, 8, 0);
+	line(frame, Point(0, y_2), Point(FRAME_WIDTH, y_2), Scalar(255), 1, 8, 0);
 }
 
 void screen2(int x_min, int y_min, int spacex_3, int spacey_2, Mat &frame){
@@ -349,13 +349,13 @@ void screen2(int x_min, int y_min, int spacex_3, int spacey_2, Mat &frame){
 
 //write on X,Y coordinates after calibration  
 void PutXY(Mat &cameraFeed){
-	putText(cameraFeed, "Xmin=" + intToString(x_min), Point(1000, 540), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Ymin=" + intToString(y_min), Point(1000, 560), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X1=" + intToString(Spacex_1), Point(1000, 580), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X2=" + intToString(Spacex_2), Point(1000, 600), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X3=" + intToString(Spacex_3), Point(1000, 620), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Y1=" + intToString(Spacey_1), Point(1000, 640), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Y2=" + intToString(Spacey_2), Point(1000, 660), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "Xmin=" + intToString(x_min), Point(FRAME_WIDTH - 200, FRAME_HEIGHT-200), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "Ymin=" + intToString(y_min), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 180), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "X1=" + intToString(Spacex_1), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 160), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "X2=" + intToString(Spacex_2), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 140), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "X3=" + intToString(Spacex_3), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 120), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "Y1=" + intToString(Spacey_1), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 100), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+	putText(cameraFeed, "Y2=" + intToString(Spacey_2), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 80), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
 	putText(cameraFeed, "Controlling", Point(0, 80), 2, 1, Scalar(0, 255, 0), 2);
 }
 
@@ -516,7 +516,6 @@ void instruction2(int input,  Mat &frame){
 	}
 }
 
-
 //add filter for reflection 
 void addColor1( Mat &cameraFeed){
 	Mat roi = cameraFeed(Rect(Point(0, 0), Point(1280, 720)));
@@ -593,7 +592,12 @@ void cursor(int input){
 
 }
 
+// this function is to create a green window for main panel 
+void createPanel(Mat &panel){
+	rectangle(panel, Point(0, 0), Point(800, 600), Scalar(130, 240, 120), CV_FILLED, 8);
 
+
+}
 
 //MAIN PROGRAM
 
@@ -610,7 +614,7 @@ int main(int argc, char* argv[])
 	bool start_time = true;       //calibration time function, true when calibration starts 
 	bool startControl = false;    // if start to control the arduino, true when calibration finish, false when track lost 
 	bool ArduinoConnect = false;  //state if arduino is connected to computer 
-	bool flipI = false;
+	bool flipI = true;
 	//Matrix to store each frame of the webcam feed
 	Mat cameraFeed;
 	//matrix storage for HSV image
@@ -679,7 +683,7 @@ int main(int argc, char* argv[])
 			if (flipI)
 			{
 				cameraFeed.copyTo(inverse);
-				flip(inverse, cameraFeed, 0);
+				flip(inverse, cameraFeed, 1);
 			}
 
 			cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
@@ -720,6 +724,7 @@ int main(int argc, char* argv[])
 
 			if (userOpt == 1){
 #pragma region option1_Control
+
 
 				//calibration 
 				if (cali == true && objectFound == true)

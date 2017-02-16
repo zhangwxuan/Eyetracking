@@ -21,24 +21,24 @@ using namespace std;
 //these will be changed using trackbars
 
 
-int H_MIN = 33;
+int H_MIN = 42;
 int H_MAX = 256;
 int S_MIN = 0;
 int S_MAX = 256;
 int V_MIN = 37;
 int V_MAX = 256;
 int DilateV = 6; 
-int ErodeV= 6;
+int ErodeV= 10;
 
 //default capture width and height
-const int FRAME_WIDTH = 1280;
+const int FRAME_WIDTH = 960;
 const int FRAME_HEIGHT = 720;
 
 //max number of objects to be detected in frame
 const int MAX_NUM_OBJECTS = 20;                             //make sure no noise to interupt
 
 //minimum and maximum object area
-const int MIN_OBJECT_AREA = 15 * 15;                        //no need
+const int MIN_OBJECT_AREA = 5 * 5;                        //no need
 const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH / 1.5; //no need
 
 //names that will appear at the top of each window
@@ -227,7 +227,7 @@ void calibration(int x, int y, Mat &cameraFeed, double duration){
 	{
 		x_max = x;
 		y_min1 = y;
-		circle(cameraFeed, Point(FRAME_WIDTH-20, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
+		circle(cameraFeed, Point(FRAME_WIDTH - 20, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
 	else if (duration < 14)
 	{
@@ -594,7 +594,7 @@ void cursor(int input){
 
 // this function is to create a green window for main panel 
 void createPanel(Mat &panel){
-	rectangle(panel, Point(0, 0), Point(800, 600), Scalar(130, 240, 120), CV_FILLED, 8);
+	rectangle(panel, Point(0, 0), Point(FRAME_WIDTH, FRAME_HEIGHT), Scalar(22, 234, 17), CV_FILLED, 8);
 
 
 }
@@ -725,8 +725,11 @@ int main(int argc, char* argv[])
 			if (userOpt == 1){
 #pragma region option1_Control
 
+				Mat panel;
+				panel = Mat::zeros(Size(FRAME_WIDTH, FRAME_HEIGHT), CV_8UC3);
+				createPanel(panel);
 
-				//calibration 
+		/*		//calibration 
 				if (cali == true && objectFound == true)
 				{
 					if (start_time){
@@ -737,12 +740,12 @@ int main(int argc, char* argv[])
 					duration = (double)(clock() - start) / CLOCKS_PER_SEC;
 
 					if (duration < 23)
-						calibration(x, y, cameraFeed, duration);
+					calibration(x, y, panel, duration);
 				}
 
 				else
 					start = clock();
-
+*/
 
 				//after calibration and can start to control 
 				if (cali == false){
@@ -774,6 +777,8 @@ int main(int argc, char* argv[])
 
 				//adding shadow to the selected area 
 				instruction(input, x, y, cameraFeed);
+
+				imshow("panel", panel);
 #pragma endregion 		
 			}
 
@@ -883,13 +888,13 @@ int main(int argc, char* argv[])
 #pragma region screen 
 
 			//Drawing rectangle shape: 
-			addColor(cameraFeed);
+	  //      addColor(cameraFeed);
 
 			//show frames
 			imshow(windowName2, threshold);
 			imshow(windowName, cameraFeed);
-			moveWindow("threshold", 10, 70);
-
+			moveWindow(windowName2, 10, 70);
+			moveWindow(windowName, 500, 70);
 
 			//image will not appear without this waitKey() command
 			waitKey(1);

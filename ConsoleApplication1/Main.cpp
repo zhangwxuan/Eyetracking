@@ -1,4 +1,6 @@
 // this is update online at the sametime 
+// still the control one 
+// make the program looks simple 
 
 #include <sstream>
 #include <string>
@@ -14,29 +16,48 @@
 #include <Windows.h>
 #include <cstdlib>
 #include <conio.h>
- 
+
 using namespace cv;
 using namespace std;
 //initial min and max HSV filter values.
 //these will be changed using trackbars
 
 
-int H_MIN = 42;
-int H_MAX = 256;
+int H_MIN = 30;
+int H_MAX = 247;
 int S_MIN = 0;
 int S_MAX = 256;
-int V_MIN = 37;
+int V_MIN = 16;
 int V_MAX = 256;
-int DilateV = 6; 
-int ErodeV= 10;
+int DilateV = 3;
+int ErodeV = 6;
 
 //default capture width and height
-const int FRAME_WIDTH = 960;
-const int FRAME_HEIGHT = 720;
+const int FRAME_WIDTH = 800;   // this is the camera viode size 
+const int FRAME_HEIGHT = 600;
+const int Mouse_Speed_UD = 13; //mouse moving speed up and down 
+const int Mouse_Speed_LR = 11; //mouse moving speed left and right 
+const double SCREEN_WIDTH = 1680;   // this is the dispaly resolution 
+const double SCREEN_HEIGHT = 1050;
+const double X_RANGE = 25; //smaller value gives a faster change
+const double Y_RANGE = 1;
+const double RESOLUTION_X = 1920;
+const double RESOLUTION_Y = 1080;
+const double CTRL_X = 1000;
+const double CTRL_Y = 200; 
+bool changeY = false; //this is to set if need to track y position
+
+// the string can be changed for control instruction 
+string command1 = "LEFT";
+string command2 = "UP";
+string command3 = "DOWN";
+string command4 = "Right";
+string command5 = "Click"; 
+string command6 = ""; 
 
 //max number of objects to be detected in frame
 const int MAX_NUM_OBJECTS = 20;                             //make sure no noise to interupt
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
 //minimum and maximum object area
 const int MIN_OBJECT_AREA = 5 * 5;                        //no need
 const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH / 1.5; //no need
@@ -49,22 +70,26 @@ const string trackbarWindowName = "Trackbars";
 const string windowName4 = "Cursor Control Panel";
 bool objectFound = false;          // if is tracking the object
 bool cali = true;                  // true when need to calibtaion 
+bool clickOne = true;
 
-int x_min, x_max, y_min, y_max, x_min1, x_max1, y_min1, y_max1,x_o,y_o;
-int dx, dy, x_1, x_2, y_1, y_2, Spacex_1, Spacex_2, Spacex_3, Spacey_1, Spacey_2;
-int stop=0;  // to count the time to shut down system automatically 
+int x_min, x_max, y_min, y_max, x_min1, x_max1, y_min1, y_max1, x_o, y_o;
+int x_1, x_2, y_1, y_2;
+double Spacex_1, Spacex_2, Spacex_3, Spacey_1, Spacey_2;
+int x_screen, y_screen; // real coordinate in screen
+int x_screen1, y_screen1; // coordinate for control panel 
+int stop = 0;  // to count the time to shut down system automatically 
 int userOpt; // option for operation mode 
-int cursor_x = 960, cursor_y = 540; 
+int cursor_x = 960, cursor_y = 540;
 
-POINT p; 
+double dx=0, dy=0;
+POINT p;
 
 void on_trackbar(int, void*)
 {//This function gets called whenever a
 	// trackbar position is changed
-
 }
 
-string intToString(int number){
+string intToString(int number) {
 
 	std::stringstream ss;
 	ss << number;
@@ -72,9 +97,8 @@ string intToString(int number){
 }
 
 //functions: 
-
 //to create the control HSV bar
-void createTrackbars(){
+void createTrackbars() {
 	//create window for trackbars
 
 	namedWindow(trackbarWindowName, 0);
@@ -106,12 +130,11 @@ void createTrackbars(){
 }
 
 //to draw ROI 
-void drawObject(int x, int y, Mat &frame){
+void drawObject(int x, int y, Mat &frame) {
 
 	//use some of the openCV drawing functions to draw crosshairs
 	//on your tracked image!
 
-	//UPDATE:JUNE 18TH, 2013
 	//added 'if' and 'else' statements to prevent
 	//memory errors from writing off the screen (ie. (-25,-25) is not within the window!)
 
@@ -134,7 +157,7 @@ void drawObject(int x, int y, Mat &frame){
 }
 
 //doing morphOps to the roi
-void morphOps(Mat &thresh){
+void morphOps(Mat &thresh) {
 	/*
 	Erode and Dialate:
 	para1: shape: MORPH_RECT MORPH_CROSS  MORPH_ELLIPSE
@@ -151,16 +174,13 @@ void morphOps(Mat &thresh){
 	erode(thresh, thresh, erodeElement);
 	erode(thresh, thresh, erodeElement);
 
-
 	dilate(thresh, thresh, dilateElement);
 	dilate(thresh, thresh, dilateElement);
-
-
 
 }
 
 //do the tracking things 
-void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
+void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 
 	Mat temp;
 	threshold.copyTo(temp);
@@ -175,7 +195,7 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 	if (hierarchy.size() > 0) {
 		int numObjects = hierarchy.size();
 		//if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
-		if (numObjects<MAX_NUM_OBJECTS){
+		if (numObjects<MAX_NUM_OBJECTS) {
 			for (int index = 0; index >= 0; index = hierarchy[index][0]) {
 
 				Moments moment = moments((cv::Mat)contours[index]);
@@ -185,19 +205,19 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 				//if the area is the same as the 3/2 of the image size, probably just a bad filter
 				//we only want the object with the largest area so we safe a reference area each
 				//iteration and compare it to the area in the next iteration.
-				if (area>MIN_OBJECT_AREA && area<MAX_OBJECT_AREA && area>refArea){                    //MAKE SURE IS TRACKING CORRECTLY
+				if (area>MIN_OBJECT_AREA && area<MAX_OBJECT_AREA && area>refArea) {                    //MAKE SURE IS TRACKING CORRECTLY
 					x = moment.m10 / area;
 					y = moment.m01 / area;
 					objectFound = true;
 					refArea = area;
-					if (x >= 1280 || y >= 720)
-						objectFound = false; 
+					if (x >= 1280 || y >= 720)                                                       //need to change according to camera size 
+						objectFound = false;
 				}
 				else objectFound = false;
 
 			}
 			//let user know you found an object
-			if (objectFound == true){
+			if (objectFound == true) {
 				putText(cameraFeed, "Tracking Mode", Point(0, 50), 2, 1, Scalar(0, 0, 255), 2);
 				//draw object location on screen
 				drawObject(x, y, cameraFeed);
@@ -207,400 +227,125 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 	}
 }
 
+// this function is to create a green window for main panel 
+void createPanel(Mat &panel, int height, int weight) {
+	rectangle(panel, Point(0, 0), Point(height, weight), Scalar(26, 255, 40), CV_FILLED, 8);
+}
+
+int control(int x, int y) { //      need to go back and check!!!!
+	if (y < 500){
+		if (x > 0 && x < 210)
+		{
+			return 1;
+		}
+		else if (x > 0 && x < 420)
+		{
+			return 2;
+		}
+		else if (x > 0 && x < 580)
+		{
+			return 3;
+		}
+		else if (x > 0 && x < 810)
+		{
+			return 4;
+		}
+		else if (x > 0 && x < 1000)
+		{
+			return 5;
+		}
+		else
+			return 0;
+	}
+	 else
+	   	return 0;
+}
+
 // doing eye stare  calibration 
-void calibration(int x, int y, Mat &cameraFeed, double duration){
+void calibration(int x, int y, Mat &cameraFeed, double duration) {
 	putText(cameraFeed, "Calibration:", Point(0, 90), 2, 1, Scalar(0, 0, 255), 2);
 
-	if (duration < 5)
+	if (duration < 2)
 	{
-		putText(cameraFeed, "Doing Calibration:", Point(450, 600), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-		putText(cameraFeed, "-Please keep staring at the red dot", Point(450, 630), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-		putText(cameraFeed, "-Please avoid blinking eyes during staring", Point(450, 660), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+		putText(cameraFeed, "Doing Calibration:", Point(0, 110), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+
 	}
-	else if (duration < 8)
-	{
-		x_min = x;
-		y_min = y;
-		circle(cameraFeed, Point(20, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 11)
-	{
-		x_max = x;
-		y_min1 = y;
-		circle(cameraFeed, Point(FRAME_WIDTH - 20, 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 14)
-	{
-		x_max1 = x;
-		y_max = y;
-		circle(cameraFeed, Point(FRAME_WIDTH-20, FRAME_HEIGHT-20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 17)
-	{
-		x_min1 = x;
-		y_max1 = y;
-		circle(cameraFeed, Point(20, FRAME_HEIGHT - 20), 20, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 20)
+	else if (duration < 4) 
 	{
 		x_o = x;
 		y_o = y;
-		circle(cameraFeed, Point(FRAME_WIDTH/2, FRAME_HEIGHT / 2), 20, Scalar(0, 0, 255), CV_FILLED, 8);
 	}
-	else if (duration < 23)
+	else if (duration < 5 && objectFound == true)
 	{
-		x_min = (x_min + x_min1) / 2;
-		x_max = (x_max + x_max1) / 2;
-		y_min = (y_min + y_min1) / 2;
-		y_max = (y_max + y_max1) / 2;
-		dx = (x_max - x_min) / 3;
-		dy = (y_max - y_min) / 3;
-		x_1 = x_o- dx;
-		y_1 = y_o - dy;
-		x_2 = x_o + dx;
-		y_2 = y_o + dy;
-		Spacex_1= dx;
-		Spacex_2 = dx * 2;
-		Spacex_3 = 480;
-		Spacey_1 = (y_max - y_min) / 2;
-		Spacey_2 = 300;
-        cali = false;
-	}
+		dx = SCREEN_WIDTH / 2 - x_screen;
+		dy = SCREEN_HEIGHT / 2 - y_screen;
+		x_screen = (x - x_o) / X_RANGE*(RESOLUTION_X / 2) + SCREEN_WIDTH / 2 + dx;
+		y_screen = (y - y_o) / Y_RANGE*(RESOLUTION_Y / 2) + SCREEN_HEIGHT / 2 + dy;		
 
-}
 
-// doing eye stare  calibration2: fir cursor control 
-void calibration2(int x, int y, Mat &cameraFeed, double duration){
-	putText(cameraFeed, "Calibration:", Point(20, 20), 2, 1, Scalar(0, 0, 0), 2);
-
-	if (duration < 5)
-	{
-		putText(cameraFeed, "Follow red dots :", Point(20, 50), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 0), 2);
-
-	}
-	else if (duration < 8)
-	{
-		x_min = x;
-		y_min = y;
-		circle(cameraFeed, Point(10, 10), 10, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 11)
-	{
-		x_max = x;
-		y_min1 = y;
-		circle(cameraFeed, Point(470, 10), 10, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 14)
-	{
-		x_max1 = x;
-		y_max = y;
-		circle(cameraFeed, Point(470, 280), 10, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 17)
-	{
-		x_min1 = x;
-		y_max1 = y;
-		circle(cameraFeed, Point(10, 280), 10, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 20)
-	{
-		x_o = x;
-		y_o = y;
-		circle(cameraFeed, Point(230, 140), 20, Scalar(0, 0, 255), CV_FILLED, 8);
-	}
-	else if (duration < 23)
-	{
-		x_min = (x_min + x_min1) / 2;
-		x_max = (x_max + x_max1) / 2;
-		y_min = (y_min + y_min1) / 2;
-		y_max = (y_max + y_max1) / 2;
-		dx = (x_max - x_min) / 3;
-		dy = (y_max - y_min) / 3;
-		Spacex_1 = x_min + dx;
-		Spacex_2 = x_min + dx * 2;
-		Spacex_3 = x_min + dx * 3;
-		Spacey_1 = (y_max - y_min) / 2+ y_min;
-		Spacey_2 = y_max;
-		cali = false;
-	}
-
-}
-
-//devide the screen for different area  
-void screen(int x_1, int x_2, int y_1, int y_2, Mat &frame ){
-
-	line(frame, Point(x_1, 0), Point(x_1, FRAME_HEIGHT), Scalar(255), 1, 8, 0);
-	line(frame, Point(x_2, 0), Point(x_2, FRAME_HEIGHT), Scalar(255), 1, 8, 0);
-	line(frame, Point(0, y_1), Point(FRAME_WIDTH, y_1), Scalar(255), 1, 8, 0);
-	line(frame, Point(0, y_2), Point(FRAME_WIDTH, y_2), Scalar(255), 1, 8, 0);
-}
-
-void screen2(int x_min, int y_min, int spacex_3, int spacey_2, Mat &frame){
-
-	line(frame, Point(x_min, y_min), Point(Spacex_3, y_min), Scalar(255), 1, 8, 0);
-	line(frame, Point(x_min, Spacey_1), Point(Spacex_3, Spacey_1), Scalar(255), 1, 8, 0);
-	line(frame, Point(x_min, Spacey_2), Point(Spacex_3, Spacey_2), Scalar(255), 1, 8, 0);
-
-	line(frame, Point(x_min, y_min), Point(x_min, Spacey_2), Scalar(255), 1, 8, 0);
-	line(frame, Point(Spacex_1, y_min), Point(Spacex_1, Spacey_2), Scalar(255), 1, 8, 0);
-	line(frame, Point(Spacex_2, y_min), Point(Spacex_2, Spacey_2), Scalar(255), 1, 8, 0);
-	line(frame, Point(Spacex_3, y_min), Point(Spacex_3, Spacey_2), Scalar(255), 1, 8, 0);
-}
-
-//write on X,Y coordinates after calibration  
-void PutXY(Mat &cameraFeed){
-	putText(cameraFeed, "Xmin=" + intToString(x_min), Point(FRAME_WIDTH - 200, FRAME_HEIGHT-200), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Ymin=" + intToString(y_min), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 180), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X1=" + intToString(Spacex_1), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 160), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X2=" + intToString(Spacex_2), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 140), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "X3=" + intToString(Spacex_3), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 120), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Y1=" + intToString(Spacey_1), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 100), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Y2=" + intToString(Spacey_2), Point(FRAME_WIDTH - 200, FRAME_HEIGHT - 80), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(cameraFeed, "Controlling", Point(0, 80), 2, 1, Scalar(0, 255, 0), 2);
-}
-
-//to generate the input to arduino 
-char control(int x, int y){ //      need to go backk and check!!!!
-
-	if ((x - x_1) < 0)
-	{
-		return '4'; //return left
-	}
-	else if ((x - x_2) > 0)
-	{
-		return '3'; // return right;
-	}
-	else if ((y - y_1) < 0)
-	{
-		return '1'; // return forward;
-	}
-	else if ((y - y_2) > 0)
-	{
-		return '2'; //backward 
-	}
-
-	else
-	{
-		return '5'; // stop; 
 	}
 }
 
-// cursor control panel : control 2: 
-char control2(int x, int y){
-
-	if (x_min < x && x < Spacex_1){
-		if (y_min<y && y <Spacey_1)
-		{
-			return '5';  //x1 y1: left click 
-		}
-
-		else if (Spacey_1< y && y<Spacey_2)
-		{
-			return '3'; //x1 y2: left 
-		}
-		else return'7';
-
-	}
-	else if (Spacex_1 < x && x < Spacex_2){
-		if (y_min<y &&  y < Spacey_1)
-		{
-			return '1';//x2 y1: up 
-		} 
-		else if (Spacey_1< y && y < Spacey_2)
-		{
-			return '2';//x2 y2: down 
-		} 
-		else return'7';
-	}
-	else  if (Spacex_2< x && x < Spacex_3){
-		if (y_min<y &&  y < Spacey_1)
-		{
-			return '6'; //x3 y1: right click 
-		}
-		else if (Spacey_1< y && y < Spacey_2)
-		{
-			return '4'; //x3 y2: right 
-		}
-		else return'7';
-	}
-	else return ' 7';
-
+//screensize is used to calculate the x,y coordinate in real screen display 
+void screensize(int & x_screen, int & y_screen, int x, int y){
+	x_screen = (x - x_o) / X_RANGE*(RESOLUTION_X / 2) + SCREEN_WIDTH / 2 + dx;
+	y_screen = (y - y_o) / X_RANGE*(RESOLUTION_Y / 2) + SCREEN_HEIGHT / 2 + dy;
 }
 
-//display control instruction 
-void instruction(int input, int x, int y, Mat &frame){
-	double alpha = 0.3; 
-	if (input == '4')    //turning left
-	{
-	 Mat roi = frame(Rect(Point(0, 0), Point(x_1, 720)));
-	 Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-	 addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	 putText(frame, "Turn Left", Point(x+20,y+20), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
+//control box program is used to divide the control panel into num region 
+void controlbox(Mat &output, int num){	
+	rectangle(output, Point(0, 0), Point(CTRL_X, CTRL_Y), Scalar(0, 0, 0), CV_FILLED, 8);
+	for (int n= 0; n < num;n++ ){
+		line(output, Point(n*CTRL_X / num, 0), Point(n*CTRL_X / num, CTRL_Y), Scalar(0,0,255));
 	}
 
-	else if (input == '3')      //turning right 
-	{
-		Mat roi = frame(Rect(Point(x_2, 0), Point(1280, 720)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-		putText(frame, "Turn Right", Point(x + 20, y + 20), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	}
-
-	else if (input == '2')     //back 
-	{
-		Mat roi = frame(Rect(Point(x_1, y_2), Point(x_2, 720)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-		putText(frame, "Going Back", Point(x + 20, y + 20), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	}
-
-	else if (input == '1')    //forward 
-	{
-		Mat roi = frame(Rect(Point(x_1, 0), Point(x_2, y_1)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-		putText(frame, "Going Forward", Point(x + 20, y + 20), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	}
-	else if (input == '5')    //stop 
-	{
-		Mat roi = frame(Rect(Point(x_1, y_1), Point(x_2, y_2)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-		putText(frame, "Stop", Point(x + 20, y + 20), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	}
-
+	putText(output, command1, Point(70, 90), 2, 1, Scalar(0, 0, 255), 2);
+	putText(output, command2, Point(270, 90), 2, 1, Scalar(0, 0, 255), 2);
+	putText(output, command3, Point(470, 90), 2, 1, Scalar(0, 0, 255), 2);
+	putText(output, command4, Point(670, 90), 2, 1, Scalar(0, 0, 255), 2);
+	putText(output, command5, Point(870, 90), 2, 1, Scalar(0, 0, 255), 2);
 }
 
-// display selected area for control panel 2:
-void instruction2(int input,  Mat &frame){
-	double alpha = 0.3;
-	if (input == '1')    // up
-	{
-		Mat roi = frame(Rect(Point(160, 0), Point(320, 150)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-
-	else if (input == '2')      //down
-	{
-		Mat roi = frame(Rect(Point(160, 150), Point(320, 300)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-
-	else if (input == '3')     //left 
-	{
-		Mat roi = frame(Rect(Point(0, 150), Point(160, 300)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-
-	else if (input == '4')    //right 
-	{
-		Mat roi = frame(Rect(Point(320, 150), Point(480, 300)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-	else if (input == '5')    //stop 
-	{
-		Mat roi = frame(Rect(Point(0, 0), Point(160, 150)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-
-	else if (input == '6')    //stop 
-	{
-		Mat roi = frame(Rect(Point(320, 0), Point(480, 150)));
-		Mat color(roi.size(), CV_8UC3, Scalar(0, 0, 0));
-		addWeighted(color, alpha, roi, 1.0 - alpha, 0.0, roi);
-	}
-}
-
-//add filter for reflection 
-void addColor1( Mat &cameraFeed){
-	Mat roi = cameraFeed(Rect(Point(0, 0), Point(1280, 720)));
-	Mat color(roi.size(), CV_8UC3, Scalar(0, 125, 125));
-	addWeighted(color, 0.5, roi, 0.5, 0.0, roi);
-
-}
-
-void addColor(Mat& cameraFeed){
-	Mat roi;
-	double alpha = 0.5;
-    cameraFeed.copyTo(roi);
-	rectangle(roi, cv::Rect(0, 0, 1280, 720), cv::Scalar(0, 125, 125),-1);
-	addWeighted(roi, alpha, cameraFeed, 1 - alpha, 0, cameraFeed);
-
-}
-
-// draw the control box 
-void ctrlBox( Mat &output){
-	//output = Scalar(0, 255, 0);
-	rectangle(output, Point(0, 0), Point(480,300), Scalar(130,240,120), CV_FILLED,8);
-	line(output, Point(160, 0), Point(160, 300), Scalar(255));
-	line(output, Point(320, 0), Point(320, 300), Scalar(255));
-	line(output, Point(0, 150), Point(500, 150), Scalar(255));
-
-	putText(output, "Left", Point(50,240), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(output, "Right", Point(370, 240), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(output, "Up", Point(220, 90), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(output, "Down", Point(200,240), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-
-	putText(output, "Click(L)", Point(30, 90), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-	putText(output, "Click(R)", Point(350, 90), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-
-
-}
-
-//call cursor events: 
-void cursor(int input){
+//this function is used to control cursor 
+void cursor(int input) {
 	GetCursorPos(&p);
 	cursor_x = p.x;
 	cursor_y = p.y;
-	switch ((input)) {
-	case '1':  //key up
-		cursor_y = cursor_y - 5;
+	switch (input) {
+	case 1:  //key left
+		cursor_x = cursor_x - Mouse_Speed_LR;
 		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '2': // key down
-		cursor_y = cursor_y + 5;
+	case 2: // key up
+		cursor_y = cursor_y - Mouse_Speed_UD;
 		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '3':  // key left
-		cursor_x = cursor_x - 5;
+	case 3:  // key down
+		cursor_y = cursor_y + Mouse_Speed_UD;
 		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '4':  // key right
-		cursor_x = cursor_x + 5;
+	case 4:  // key right
+		cursor_x = cursor_x + Mouse_Speed_LR;
 		SetCursorPos(cursor_x, cursor_y);
 		break;
-	case '5':
-		mouse_event(MOUSEEVENTF_LEFTDOWN, cursor_x, cursor_y, 0, 0); // moving cursor leftdown
+	case 5:
+		mouse_event(MOUSEEVENTF_LEFTDOWN, cursor_x, cursor_y, 0, 0); // moving left click
 		mouse_event(MOUSEEVENTF_LEFTUP, cursor_x, cursor_y, 0, 0); // moving cursor leftup //for accessing your required co-ordinate
 		break;
 
-	case '6':
-		mouse_event(MOUSEEVENTF_RIGHTDOWN, cursor_x, cursor_y, 0, 0); // moving cursor leftdown
-		mouse_event(MOUSEEVENTF_RIGHTUP, cursor_x, cursor_y, 0, 0); // moving cursor leftup //for accessing your required co-ordinate
-		break; 
-   
-	default:
-		cout << "null" << endl;  // not arrow
+	case 6:
+		mouse_event(MOUSEEVENTF_RIGHTDOWN, cursor_x, cursor_y, 0, 0); // cursor right click
+		mouse_event(MOUSEEVENTF_RIGHTUP, cursor_x, cursor_y, 0, 0); 
+		break;
+
+	default: // not arrow
 		break;
 	}
 	Sleep(20);
 
-}
-
-// this function is to create a green window for main panel 
-void createPanel(Mat &panel){
-	rectangle(panel, Point(0, 0), Point(FRAME_WIDTH, FRAME_HEIGHT), Scalar(22, 234, 17), CV_FILLED, 8);
-
 
 }
-
-//MAIN PROGRAM
-
+// showing comnnad content for control panel 
 
 int main(int argc, char* argv[])
 {
@@ -612,9 +357,11 @@ int main(int argc, char* argv[])
 	bool useMorphOps = true;      // tracking shadows 
 	//bool isTracking = false;    
 	bool start_time = true;       //calibration time function, true when calibration starts 
+	bool start_time2 = true;      //this is for selection output 
 	bool startControl = false;    // if start to control the arduino, true when calibration finish, false when track lost 
 	bool ArduinoConnect = false;  //state if arduino is connected to computer 
-	bool flipI = true;
+	bool flipI = true;            // if need to flip the camera 
+	bool move = true;                    //to move for once only 
 	//Matrix to store each frame of the webcam feed
 	Mat cameraFeed;
 	//matrix storage for HSV image
@@ -628,15 +375,18 @@ int main(int argc, char* argv[])
 	//these are for calibration
 	createTrackbars();
 	//video capture object to acquire webcam feed
-	double duration;
+	double duration, duration2;
 	clock_t start, startx;
 	int timex;
 	//is for counitng time display
-	char input; // arduino input 
-	char calibrationOption; 
+	int input=0; // control input 
+	int input1=0; // for compare with previous input 
+	char calibrationOption;
 	bool Option1 = true;
-
+	string command; // for user input 
 #pragma endregion
+
+#pragma region console_display
 
 	// to select the opertation mode: 
 	cout << "Please select the mode " << endl;
@@ -645,262 +395,194 @@ int main(int argc, char* argv[])
 	cout << "please enter the number: ..." << endl;
 	cin >> userOpt;
 
-		cout << "loading..." << endl<<endl;
-#pragma region arduinoSetUp
+	cout << "loading..." << endl << endl;
 
-			Serial* port = new Serial("COM4"); //connect to arduino        Here to change the port number 
-
-			//Arduino Communication set up:
-
-			char data[8] = "";
-			char command[2] = "";
-			int datalength = 8;  //length of the data,
-			int readResult = 0;
-			int n;
-			int opt; // to choose functions 
-			for (int i = 0; i < 8; ++i) { data[i] = 0; }
+	VideoCapture capture;
+	//open capture object at location zero (default location for webcam)
+	capture.open(0);
+	//set height and width of capture frame
+	capture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
+	//start an infinite loop where webcam feed is copied to cameraFeed matrix
+	//all of our operations will be performed within this loop
 #pragma endregion 
-
-		VideoCapture capture;
-		//open capture object at location zero (default location for webcam)
-		capture.open(0);
-		//set height and width of capture frame
-		capture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
-		capture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
-		//start an infinite loop where webcam feed is copied to cameraFeed matrix
-		//all of our operations will be performed within this loop
+	cout << "you may enter your instruction "; 
 
 
-		while (1){
+	while (1) {
 
 #pragma region basic tracking function 
 
-			//store image to matrix and flip the image
-			capture.read(cameraFeed);
+		//store image to matrix and flip the image
+		capture.read(cameraFeed);
+
+		// to flip over image 
+		if (flipI)
+		{
+			cameraFeed.copyTo(inverse);
+			flip(inverse, cameraFeed, 1);
+		}
+
+		cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
+		inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
 
 
-			// to flip over image 
-			if (flipI)
-			{
-				cameraFeed.copyTo(inverse);
-				flip(inverse, cameraFeed, 1);
-			}
-
-			cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
-			inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
-
-			
-			//MorphOps
-			if (useMorphOps)
-				morphOps(threshold);
+		//MorphOps
+		if (useMorphOps)
+			morphOps(threshold);
 
 
-			//check port connection:  
-			if (userOpt == 1){
-				if (port->IsConnected())
-				{
-					putText(cameraFeed, "Arduino Connected", Point(1000, 60), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-					ArduinoConnect = true;
-				}
-				else
-				{
-					putText(cameraFeed, "Not Connected", Point(1000, 60), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-					ArduinoConnect = false;
-				}
-			}
-
-
-			//pass in thresholded frame to our object tracking function
-			//this function will return the x and y coordinates of the
-			if (trackObjects)
-				trackFilteredObject(x, y, threshold, cameraFeed);
-
-
+		//pass in thresholded frame to our object tracking function
+		//this function will return the x and y coordinates of the
+		if (trackObjects)
+			trackFilteredObject(x, y, threshold, cameraFeed);
 
 #pragma endregion 
-			//for option 1: 
-			//control and send to arduino 
+		//for option 1: 
+		//control and send to arduino 
 
 
-			if (userOpt == 1){
+		if (userOpt == 1) {
 #pragma region option1_Control
 
-				Mat panel;
-				panel = Mat::zeros(Size(FRAME_WIDTH, FRAME_HEIGHT), CV_8UC3);
-				createPanel(panel);
 
-		/*		//calibration 
-				if (cali == true && objectFound == true)
-				{
-					if (start_time){
-						start = clock();
-						start_time = false;
-					}
 
-					duration = (double)(clock() - start) / CLOCKS_PER_SEC;
+			Mat ctrlPanel;
+			ctrlPanel = Mat::zeros(Size(1000, 200), CV_8UC3);
+			createPanel(ctrlPanel, 1000, 200);
+			// this is a reflection on whole screen display 
+			Mat wholePanel;
+			wholePanel = Mat::zeros(Size(SCREEN_WIDTH, SCREEN_HEIGHT), CV_8UC3);
 
-					if (duration < 23)
-					calibration(x, y, panel, duration);
-				}
+			screensize(x_screen, y_screen, x, y);
+			circle(wholePanel, Point(x_screen, y_screen), 5, Scalar(0, 0, 255), 2);
+			circle(wholePanel, Point(840, 525), 20, Scalar(0, 0, 255), 2);
+			//calibration process 
+#pragma region calibration
 
-				else
+			if (cali == true && objectFound == true)
+			{
+				if (start_time) {
 					start = clock();
-*/
-
-				//after calibration and can start to control 
-				if (cali == false){
-					PutXY(cameraFeed);
-					startControl = true;
+					start_time = false;
 				}
 
-				if (startControl == true){
+				duration = (double)(clock() - start) / CLOCKS_PER_SEC;
 
-					input = control(x, y);
-
-					if (objectFound == false)
-						input = '5';
-
-					command[0] = input;
-					int msglen = strlen(command);
-					if (port->WriteData(command, msglen));  //write to arduino
-					printf("Wrtiting Success\n");
-					Sleep(15);
-					n = port->ReadData(data, 8);
-					if (n != -1){
-						data[n] = 0;
-						cout << "arduino: " << data << endl;
-					}
-				}
-
-				// showing dividing lines: 
-				screen(x_1, x_2, y_1, y_2, cameraFeed);
-
-				//adding shadow to the selected area 
-				instruction(input, x, y, cameraFeed);
-
-				imshow("panel", panel);
-#pragma endregion 		
+				if (duration < 5)
+					calibration(x, y, wholePanel, duration);
+				if (duration > 5)
+					cali = false;
 			}
 
+			else if (cali == false){
+				startControl = true;
+			}
 
-			//for option 2: 
-			//control the cursor: 
-
-          
-
-			if (userOpt == 2){
+			else
+				start = clock();
+#pragma endregion 
 
 
-#pragma region   option2_Control
 
-				Mat output;
-				output = Mat::zeros(Size(480, 300), CV_8UC3);
-				ctrlBox(output);
+			// this is for control panel 
+			if (objectFound == true)
+			{
+				x_screen1 = (x - x_o) / X_RANGE*(RESOLUTION_X / 2) + 1000 / 2 + dx;
+				
+				if (changeY)
+					y_screen1 = y_screen;
+				else
+					y_screen1 = 100; 
 
-				//if catch the calibration or by input: 
-				if (Option1){
-					cout << "Please select calibration method " << endl;
-					cout << "1. By system measure " << endl;
-					cout << "2. By user input " << endl;
-					cout << "3. By example input " << endl;
-					cout << "please enter the number: ..." << endl;
-					cin >> calibrationOption;
-					Option1 = false;
+				circle(ctrlPanel, Point(x_screen1, y_screen1), 5, Scalar(0, 0, 255), 2);
+			}
+			//function on ctrlbox and corresponding indicate: 
+			controlbox(ctrlPanel,5); 
+
+
+
+
+			// this is for counting time for seletion 
+			if (startControl == true)
+			{
+
+				input = control(x_screen1, y_screen1);
+				rectangle(ctrlPanel, Point((input - 1) * 200, 0), Point(input * 200, 200), Scalar(156, 195, 165), CV_FILLED, 8);
+
+				if (start_time2) {
+					startx = clock();
+					start_time2 = false;
 				}
 
-				//calibration 
-				if (!startControl){
-					//option 1: control by system calibraion 
-					if (calibrationOption == '1'){
-						cout << "start calibration process";
-						if (cali == true && objectFound == true)
-						{
-							if (start_time){
-								start = clock();
-								start_time = false;
-							}
+				duration2 = (double)(clock() - startx) / CLOCKS_PER_SEC;
 
-							duration = (double)(clock() - start) / CLOCKS_PER_SEC;
+				if (input == input1){
 
-							if (duration < 23)
-								calibration2(x, y, output, duration);
-						}
-
-						else
-							start = clock();
-
-
-						//after calibration and can start to control 
-						if (cali == false){
-							PutXY(cameraFeed);
-							startControl = true;
-						}
-
-					}
-
-					//option 2: control by input numbers 
-					if (calibrationOption == '2'){
-						cout << "please enter number:";
-						cout << "x_min:";  	cin >> x_min;
-						cout << "SpaceX_1: ";  cin >> Spacex_1;
-						cout << "SpaceX_2: ";  cin >> Spacex_2;
-						cout << "SpaceX_3: ";  cin >> Spacex_3;
-						cout << "y_min:";      cin >> y_min;
-						cout << "SpaceY_1: ";  cin >> Spacey_1;
-						cout << "SpaceY_2: ";   cin >> Spacey_2;
-						PutXY(cameraFeed);
-						startControl = true;
-					}
-
-					if (calibrationOption == '3'){
-						x_min = 510; Spacex_1 = 625;  Spacex_2 = 740; Spacex_3 = 855;
-						y_min = 411; Spacey_1 = 516;  Spacey_2 = 622;
-						startControl = true;
-					}
-
-				}
-
-				if (startControl){
-					input = control2(x, y); 
-					// to control the cursor movement 
-				//   	cursor(input);
-					//high light selected area 
-					//cout << input; 
-					if (objectFound)
-					{
-						instruction2(input, output);
+					if (input == 5 && clickOne && duration2 >1)
+					{   
 						cursor(input);
+						rectangle(ctrlPanel, Point((input - 1) * 200, 0), Point(input * 200, 200), Scalar(232, 144, 144), CV_FILLED, 8);
+						clickOne = false; 
 					}
-				
+						
+					else if (input != 5 && duration2 > 1)
+					{
+						cursor(input);
+						rectangle(ctrlPanel, Point((input - 1) * 200, 0), Point(input * 200, 200), Scalar(232, 144, 144), CV_FILLED, 8);
 					}
-				
-
-				if (objectFound)
-					putText(output, "Tracking:", Point(350, 20), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 2);
-
-				putText(cameraFeed, "control =" + intToString(input), Point(1000, 500), FONT_HERSHEY_PLAIN, 1.5, Scalar(0, 0, 255), 2);
-				screen2(x_min, y_min, Spacex_3, Spacey_2, cameraFeed);
-				imshow(windowName4, output);
-
-#pragma endregion	
+					else if (input != 5)
+						clickOne = true; 
+				}
+				else
+				{
+					input1 = input;
+					startx = clock();
+				}
 			}
+
+			else if (startControl == false)
+				input = 0; 
+
+			imshow("wholePanel", wholePanel);
+			imshow("ctrlPanel", ctrlPanel);
+
+#pragma endregion 		
+		}
+
+
 
 #pragma region screen 
 
-			//Drawing rectangle shape: 
-	  //      addColor(cameraFeed);
+		circle(cameraFeed, Point(400, 300), 20, Scalar(0, 0, 255), 2);
 
-			//show frames
+		Mat colorPanel;
+		colorPanel = Mat::zeros(Size(600, 600), CV_8UC3);
+		createPanel(colorPanel, 600, 600);
+
+		//show frames
+		if (!trackObjects){
 			imshow(windowName2, threshold);
 			imshow(windowName, cameraFeed);
-			moveWindow(windowName2, 10, 70);
-			moveWindow(windowName, 500, 70);
-
-			//image will not appear without this waitKey() command
-			waitKey(1);
-
-#pragma endregion 
 		}
 
-		return 0; 
+		imshow("panel", colorPanel);
+		if (move) {
+			moveWindow(windowName2, 10, 70);
+			moveWindow(windowName, 550, 215);
+			moveWindow("panel", 1260, 220);
+			moveWindow("wholePanel", 120, 0);
+			moveWindow("ctrlPanel", 460, 0);
+			move = false;
+		}
+		//image will not appear without this waitKey() command
+		waitKey(1);
+
+
+
+
+#pragma endregion 
 	}
+
+	return 0;
+}
